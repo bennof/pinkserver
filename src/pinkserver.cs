@@ -24,20 +24,21 @@ namespace Pink {
         private HttpListener listener;
         private Handlers router;
 
-        public Server(Handlers routes){
+        public Server(string url, Handlers routes){
             if (!HttpListener.IsSupported)
                 throw new NotSupportedException("Needs Windows XP SP2, Server 2003 or later.");
 
             listener = new HttpListener();
 
+            listener.Prefixes.Add(url);
+
             router = new Handlers();
             foreach (var pair in routes)
             {
-                listener.Prefixes.Add(pair.Key);
                 Console.WriteLine("new route: " + pair.Key);
-                Uri url = new Uri(pair.Key);
-                Console.WriteLine("... path: " + url.AbsolutePath);
-                router.Add(url.AbsolutePath,pair.Value);
+                Uri uri = new Uri(pair.Key);
+                Console.WriteLine("... path: " + uri.AbsolutePath);
+                router.Add(uri.AbsolutePath,pair.Value);
             }
         }
 
@@ -151,7 +152,7 @@ namespace Pink {
 
 
     public abstract class Handler{
-        abstract public void handle(Request req);
+        public abstract void handle(Request req);
     }
 
     public class DefaultHandler : Handler{
@@ -173,6 +174,16 @@ namespace Pink {
             req.writeString(string.Format("<p>ContentType: {0}</p>", req.ContentType));
             req.writeString(string.Format("<p>ContentLength: {0}</p>", req.ContentLength));
             req.writeString("</BODY></HTML>");
+        }
+    }
+
+    public class StaticFileHandler : Handler{
+        public override void handle(Request req) {
+            // get file
+
+            // write header
+
+            // write data
         }
     }
 
@@ -201,7 +212,12 @@ namespace Pink {
                 foreach(string s in toks){
                     string[] h = s.Split(end, StringSplitOptions.None);
                     if (h.Length==2) {
-                        sb.Append("            "+h[0]+";\r\n");
+                        string hh = h[0].Trim();
+                        if(hh[0]=='@'){
+                            sb.Append("            req.writeString(string.Format(\"{0}\", "+hh.Substring(1)+"));\r\n");
+                        }else {
+                            sb.Append("            "+h[0]+";\r\n");
+                        }
                         sb.Append("            req.writeString( "+ ToLiteral(h[1]) +");\r\n");
                     } else {
                         sb.Append("            req.writeString( "+ ToLiteral(s) +");\r\n");

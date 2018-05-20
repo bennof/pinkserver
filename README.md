@@ -18,6 +18,7 @@ Simple converter to cs with embedded code.
  * create example files
  * impove templates
  * change router 
+ * static file handler
 
 ## License
 

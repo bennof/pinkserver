@@ -5,7 +5,9 @@
         </Title>
     </head>
     <body>
-        <h1>Test</h1>
-        <i>{{req.writeString(string.Format("{0}", DateTime.Now));}}</i>
+        <h1>Test Template Engine</h1>
+        <i>{{ @DateTime.Now }}</i>
+        <p>{{ @req.Method}}</p>
+        <p>{{ @req.URL}}</p>
     </body>
 </html>
