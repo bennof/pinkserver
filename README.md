@@ -25,4 +25,4 @@ Copyright 2018, [Benjamin Falkner](http://bennof.github.io/).
 
 ### Code
 
-MIT License: [the `LICENSE` file](https://github.com/bennof/pinkserver/LICENSE).
+MIT License: [the `LICENSE` file](https://github.com/bennof/pinkserver/blob/master/LICENSE).
