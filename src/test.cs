@@ -7,6 +7,7 @@ using System;
 
 class test{
     static void Main(string[] args) {
+        /* 
         Pink.Templates t = new Pink.Templates();
         Pink.Template tmpl = t.fromFile("Tryout", @"test\templ.html");
 
@@ -19,6 +20,8 @@ class test{
         s.Start();
         Console.WriteLine("A simple webserver. Press a key to quit.");
         Console.ReadKey();
-        s.Stop();
+        s.Stop();*/
+
+        Pink.Server.Test();
     }
 }

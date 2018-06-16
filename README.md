@@ -1,5 +1,5 @@
 # pinkserver
-A small c# webserver
+A small c# webserver named after Pinksteren (Dutch: Pentecost) the time of the core development.
 
 
 ## Server

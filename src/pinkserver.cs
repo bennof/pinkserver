@@ -10,11 +10,6 @@ using System.Collections.Specialized;
 using System.Threading;
 using System.IO;
 using System.Text;
-using System.CodeDom;
-using System.CodeDom.Compiler;
-using System.Reflection;
-using Microsoft.CSharp;
-using System.Linq;
 
 
 namespace Pink {
@@ -45,6 +40,8 @@ namespace Pink {
         public void Init(){}
 
         public void Start(){
+            this.Init();
+
             //fork server
             ThreadPool.QueueUserWorkItem((o) =>
             {
@@ -114,6 +111,17 @@ namespace Pink {
             }
             return false;
         }
+
+        //test server
+        public static void Test() {
+            Handlers routes = new Handlers();
+            routes.Add("http://localhost:8080/", new DefaultHandler());
+            Server s = new Server("http://localhost:8080/",routes);
+            s.Start();
+            Console.WriteLine("A simple webserver. Press a key to quit.");
+            Console.ReadKey();
+            s.Stop();
+        }
     }
 
     public class Request {
@@ -121,193 +129,99 @@ namespace Pink {
         private HttpListenerRequest  req;
         private HttpListenerResponse res;
 
-        public string              Method        {get => req.HttpMethod;}
-        public string              URL           {get => req.Url.AbsolutePath;}
-        public CookieCollection    Cookies       {get => req.Cookies;}
-        public Stream              Input         {get => req.InputStream ;}
-        public NameValueCollection Query         {get => req.QueryString;}
-        public string              ContentType   {get => req.ContentType;}
-        public long                ContentLength {get => req.ContentLength64;}
+        public string              Method            {get => req.HttpMethod;}
+        public string              URL               {get => req.Url.AbsolutePath;}
+        public CookieCollection    Cookies           {get => req.Cookies;}
+        public Stream              Input             {get => req.InputStream ;}
+        public NameValueCollection Query             {get => req.QueryString;}
+        public string              ContentType       {get => req.ContentType;       set => res.ContentType=value;}
+        public long                ContentLength     {get => req.ContentLength64;   set => res.ContentLength64=value;}
+        
+        public bool                AcceptRange       {set => res.Headers.Add("Accept-Ranges", "bytes");}
+        public bool                SendChunked       {set => res.SendChunked=value;}
+        public int                 StatusCode        {set => res.StatusCode=value;}
+        public string              StatusDescription {set => res.StatusDescription=value;}
+        public string              RedirectLocation  {set => res.RedirectLocation=value;}
 
+        
         public Request(HttpListenerContext ctx) {
             w = new MemoryStream();
             req = ctx.Request;
             res = ctx.Response;
         }
 
-        public void write(byte[] buf) {
+        public void Write(byte[] buf) {
             w.Write(buf, 0, buf.Length);
         }
 
-        public void writeString(string s) {
+        public void WriteString(string s) {
             byte[] buf = Encoding.UTF8.GetBytes(s);
-            write(buf);
+            Write(buf);
         }
 
         public void finalize(){
             res.ContentLength64 = w.Length;
             w.WriteTo(res.OutputStream);
         }
+
+        public void ContentRange(long start, long range) {
+            res.Headers.Add("Content-Range", string.Format("bytes {0}-{1}/{2}", start, range - 1, range));
+        }
+
+
+        public long Range () {
+            string[] s = req.Headers.GetValues("Range"); 
+            if (s!=null) {
+                string[] start = s[0].Replace("bytes=", "").Split('-');;
+                return (long) int.Parse(start[0]);
+            } else {return 0;} 
+        }
+
     }
 
 
     public abstract class Handler{
         public abstract void handle(Request req);
+
+        public static string StripPrefix(string s, string prefix){
+            return s.StartsWith(prefix) ? s.Substring(prefix.Length) : s;
+        }
     }
 
     public class DefaultHandler : Handler{
         public override void handle(Request req) {
-            req.writeString("<HTML><HEAD><TITLE>Testing PinkServer ... </TITLE><HEAD><BODY>");
-            req.writeString(string.Format("<h1>Pink Server</h1><i>{0}</i>", DateTime.Now));
-            req.writeString(string.Format("<p>Method: {0}</p>", req.Method));
-            req.writeString(string.Format("<p>URL: {0}</p>", req.URL));
-            req.writeString("<p>Cookies:<ul>");
+            req.WriteString("<HTML><HEAD><TITLE>Testing PinkServer ... </TITLE><HEAD><BODY>");
+            req.WriteString(string.Format("<h1>Pink Server</h1><i>{0}</i><br>", DateTime.Now));
+            req.WriteString("see <a href=\"https://github.com/bennof/pinkserver\">GitHub</a>");
+            req.WriteString(string.Format("<p>Method: {0}</p>", req.Method));
+            req.WriteString(string.Format("<p>URL: {0}</p>", req.URL));
+            req.WriteString("<p>Cookies:<ul>");
             foreach(Cookie c in req.Cookies){
-                req.writeString(string.Format("<li>{0}: {1}</li>", c.Name,c.Value));
+                req.WriteString(string.Format("<li>{0}: {1}</li>", c.Name,c.Value));
             }
-            req.writeString("</ul></p>");
-            req.writeString("<p>Query:<ul>");
+            req.WriteString("</ul></p>");
+            req.WriteString("<p>Query:<ul>");
             foreach(string key in req.Query){
-                req.writeString(string.Format("<li>{0}: {1}</li>", key,req.Query[key]));
+                req.WriteString(string.Format("<li>{0}: {1}</li>", key,req.Query[key]));
             }
-            req.writeString("</ul></p>");
-            req.writeString(string.Format("<p>ContentType: {0}</p>", req.ContentType));
-            req.writeString(string.Format("<p>ContentLength: {0}</p>", req.ContentLength));
-            req.writeString("</BODY></HTML>");
-        }
-    }
-
-    public class StaticFileHandler : Handler{
-        public override void handle(Request req) {
-            // get file
-
-            // write header
-
-            // write data
-        }
-    }
-
-
-    public class Templates : Dictionary<string,Template> {
-        private static string[] start = new string[] {"{{"};
-        private static string[] end = new string[] {"}}"};
-
-        public Template fromFile(string name, string filen){
-            try {
-                return fromString(name,File.ReadAllText(filen));
-            } catch(Exception e)    {
-                Console.WriteLine("ERROR: {0}.", e.ToString());
-            }
-            return null; 
-        }
-
-        public Template fromString(string name, string src) {
-            try {
-                string[] toks = src.Split(start, StringSplitOptions.None);
-                StringBuilder sb = new StringBuilder();
-                sb.Append("using System;\r\n\r\n" +
-                "namespace Templates {\r\n" +
-                "    public class " + name +" :Pink.Template {\r\n" +
-                "        public override void Render(Pink.Request req, object o){\r\n");
-                foreach(string s in toks){
-                    string[] h = s.Split(end, StringSplitOptions.None);
-                    if (h.Length==2) {
-                        string hh = h[0].Trim();
-                        if(hh[0]=='@'){
-                            sb.Append("            req.writeString(string.Format(\"{0}\", "+hh.Substring(1)+"));\r\n");
-                        }else {
-                            sb.Append("            "+h[0]+";\r\n");
-                        }
-                        sb.Append("            req.writeString( "+ ToLiteral(h[1]) +");\r\n");
-                    } else {
-                        sb.Append("            req.writeString( "+ ToLiteral(s) +");\r\n");
-                    }
-                }
-                sb.Append("        }\r\n    }\r\n}\r\n");
-                File.WriteAllText("debug.cs", sb.ToString());
-                Assembly asm = compile(sb.ToString());
-                Template tmpl = (Template)load(asm,"Templates."+name);
-                //obj.GetType().InvokeMember("test",BindingFlags.InvokeMethod,null,obj,null); 
-                Add(name,tmpl);
-                return tmpl;
-            } catch(Exception e)    {
-                Console.WriteLine("ERROR: {0}.", e.ToString());
-            }
-            return null; 
-        }
-
-        // testing function
-        public static void build(){
-            string code =@"using System;
-            using System.IO;
-            namespace Templates {
-                public class Template1: Pink.Template {
-                    public override void Render(Pink.Request req, object o){
-                        req.writeString(""<HTML><HEAD><TITLE>Testing PinkServer ... </TITLE><HEAD><BODY><H1>A Simple Template</H1><P>A simple test for the Template</P></BODY></HTML>"");
-                    }
-                    public void test(){
-                        Console.WriteLine(""Test app"");
-                    }
-                }
-            }
-            ";
-            try {  
-                Assembly asm = compile(code);
-                object obj = load(asm,"Templates.Template1");
-                obj.GetType().InvokeMember("test",BindingFlags.InvokeMethod,null,obj,null); 
-            } catch(Exception e)    {
-                Console.WriteLine("ERROR: {0}.", e.ToString());
-            }
-        }
-        public static Assembly compile(string code) {
-            CodeDomProvider csc = CodeDomProvider.CreateProvider("CSharp");
-            CompilerParameters param = new CompilerParameters();
-
-            param.CompilerOptions = "/optimize";
-            param.GenerateInMemory = true;
-
-            // current assembly and deps
-            Assembly curasm = System.Reflection.Assembly.GetExecutingAssembly();
-            param.ReferencedAssemblies.Add(curasm.Location);
-            param.ReferencedAssemblies.AddRange((from deps in curasm.GetReferencedAssemblies() select Assembly.ReflectionOnlyLoad(deps.FullName).Location).ToArray());
-            //param.ReferencedAssemblies.Add("System.dll");
-
-            CompilerResults result = csc.CompileAssemblyFromSource(param,code);
-            if(result.Errors.HasErrors)    {
-                string msg = "ERROR:";
-                for (int i=0;i<result.Errors.Count;i++)
-                    msg = msg  + "\r\nLine: " + result.Errors[i].Line.ToString() + " - " + result.Errors[i].ErrorText;     
-                Console.WriteLine(msg);
-                return null;
-            }
-            return result.CompiledAssembly;
-        }
-
-        public static object load(Assembly asm, string name) {
-            object obj  = asm.CreateInstance(name);
-            if (obj == null) {
-                Console.WriteLine("ERROR: Could not load class");
-                return null;
-            }             
-            return obj;
-        }
-
-        private static string ToLiteral(string input) {
-            using (var writer = new StringWriter()) {
-                using (var provider = CodeDomProvider.CreateProvider("CSharp")) {
-                    provider.GenerateCodeFromExpression(new CodePrimitiveExpression(input), writer, null);
-                    return writer.ToString();
-                }
-            }
-        }
-    }
-
-    // template prototype by default a Handler
-    public abstract class Template : Handler{
-        public abstract void Render(Request req, object o);
-
-        public override void handle(Request req){
-            Render(req,null);
+            req.WriteString("</ul></p>");
+            req.WriteString(string.Format("<p>ContentType: {0}</p>", req.ContentType));
+            req.WriteString(string.Format("<p>ContentLength: {0}</p>", req.ContentLength));
+            req.WriteString("<h1>Code: C#</h1><pre><code>" + 
+                "using System;\n"+
+                "class Example{\n"+
+                "   static void Main(string[] args) {\n"+
+                "       Pink.Handlers routes = new Pink.Handlers();\n"+
+                "       routes.Add(\"http://localhost:8080/\", new Pink.DefaultHandler());\n"+
+                "       Pink.Server s = new Pink.Server(\"http://localhost:8080/\",routes);\n"+
+                "       s.Start();\n"+
+                "       Console.WriteLine(\"A simple webserver. Press a key to quit.\");\n"+
+                "       Console.ReadKey();\n"+
+                "       s.Stop();\n"+
+                "   }\n"+
+                "}\n"+
+                "</code></pre>");
+            req.WriteString("</BODY></HTML>");
         }
     }
 }
