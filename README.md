@@ -1,13 +1,11 @@
 # pinkserver
 A small c# webserver named after Pinksteren (Dutch: Pentecost) the time of the core development.
 
-
 ## Server
 Minimalistic on HttpListener.
 
 ## Router
 Uses first partial hit to route requests.
-
 
 ## Template Engine
 Simple converter to cs with embedded code.

@@ -22,6 +22,9 @@ class test{
         Console.ReadKey();
         s.Stop();*/
 
-        Pink.Server.Test();
+        //Pink.Server.Test();
+        //Pink.StaticFileHandler.Test(".\\priv\\static\\");
+        //Pink.Templates.Test();
+        Pink.Token.Test();
     }
 }

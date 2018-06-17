@@ -135,8 +135,7 @@ namespace Pink {
         public Stream              Input             {get => req.InputStream ;}
         public NameValueCollection Query             {get => req.QueryString;}
         public string              ContentType       {get => req.ContentType;       set => res.ContentType=value;}
-        public long                ContentLength     {get => req.ContentLength64;   set => res.ContentLength64=value;}
-        
+        public long                ContentLength     {get => req.ContentLength64;   set => res.ContentLength64=value;} 
         public bool                AcceptRange       {set => res.Headers.Add("Accept-Ranges", "bytes");}
         public bool                SendChunked       {set => res.SendChunked=value;}
         public int                 StatusCode        {set => res.StatusCode=value;}
@@ -169,11 +168,11 @@ namespace Pink {
         }
 
 
-        public long Range () {
+        public int Range () {
             string[] s = req.Headers.GetValues("Range"); 
             if (s!=null) {
                 string[] start = s[0].Replace("bytes=", "").Split('-');;
-                return (long) int.Parse(start[0]);
+                return int.Parse(start[0]);
             } else {return 0;} 
         }
 
