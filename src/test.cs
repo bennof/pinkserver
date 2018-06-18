@@ -5,8 +5,13 @@
 
 using System;
 
-class test{
+class Test{
     static void Main(string[] args) {
+        // Bulding a Server
+
+        
+
+
         /* 
         Pink.Templates t = new Pink.Templates();
         Pink.Template tmpl = t.fromFile("Tryout", @"test\templ.html");

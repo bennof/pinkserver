@@ -1,4 +1,4 @@
 debug.cs
-bin/*
-dll/*
+bin/Test.exe
+dll/pink.dll
 test
