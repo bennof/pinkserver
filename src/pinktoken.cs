@@ -5,12 +5,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization.Json;
 
 namespace Pink {
     public class Token :Dictionary<string, object> {
-
-
-
+        
+        // missing implementation
+        public string ToJSON(){
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Dictionary<string, object>));
+            return "";
+        }
 
         public static void Test(){
             Token t = new Token();

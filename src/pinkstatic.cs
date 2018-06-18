@@ -17,9 +17,12 @@ namespace Pink {
         
         private string rootPath;
         private bool isFile;
-        //private string prefix;
+        private string prefix = "";
 
-        public StaticFileHandler(string path){
+        public StaticFileHandler(string path){ init(path); }
+        public StaticFileHandler(string path, string prefix){ this.prefix = prefix; init(path); }
+
+        void init(string path){
             // checkn path
             if(File.Exists(path)) {
                 isFile =  true;
@@ -38,7 +41,7 @@ namespace Pink {
             string uri;
             byte[] buffer = new byte[BUFFER_SIZE] ;
 
-            uri = req.URL;
+            uri = (prefix != "") ? req.URL.Substring(prefix.Length): req.URL;
 
             try {
                 // get file

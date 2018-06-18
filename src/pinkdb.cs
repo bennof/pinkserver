@@ -5,6 +5,8 @@
 
 using System;
 using System.Data.OleDb;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace Pink {
     public class DB {
@@ -38,7 +40,7 @@ namespace Pink {
             int error = 0;
             string enc = "";
             byte[] buffer = CreateBuffer();
-            error += ReadPage("db\\SchILD2000n.mdb",DB.PAGE_SIZE,buffer);
+            error += ReadPage(filen,DB.PAGE_SIZE,buffer);
             error += ScanPage(buffer,ref enc);
             if(error != 0) {
                 return "";
@@ -169,5 +171,160 @@ namespace Pink {
         {
             return new OleDbConnection("Provider="+provider+";Data Source=" + file + "; Jet OLEDB:Database Password="+ GetEncoding(file) +";");
         }
+    }
+
+    public class CSV {
+        public static void Write(OleDbDataReader reader, System.IO.StreamWriter file, string sep,string[] header,  long ean)
+        {
+            
+            if(header!=null) {
+                for (int i=0; i<reader.FieldCount; i++) 
+                {      
+                    if (i!=0) {
+                        file.Write(sep);
+                    }
+                    file.Write(header[i]);
+                }
+            } else {
+                for (int i=0; i<reader.FieldCount; i++) 
+                {      
+                    if (i!=0) {
+                        file.Write(sep);
+                    }
+                    file.Write(reader.GetName(i));
+                }
+            }
+            
+            file.Write("\r\n");
+            
+            while (reader.Read())  
+            {    
+                for (int i=0; i<reader.FieldCount; i++) 
+                {
+                    if (i != 0) {
+                        file.Write(sep);
+                        file.Write(reader[i]);
+                    } else {
+                        if (ean > 0){
+                            int h = (int) reader[i];
+                            long hh = EAN13.Create(h,ean);// 2700000000000
+                            file.Write(hh);
+                        } else {
+                            file.Write(reader[i]);
+                        };
+                    }
+                }
+                file.Write("\r\n");
+            }
+        }
+    }
+
+
+    public class DBServer {
+        Thread self;
+        bool isRunning = false;
+        bool keepRunning = true;
+        OleDbConnection db;
+        Mutex mut = new Mutex();
+        Queue<SQL> req;
+
+        public DBServer(OleDbConnection db){
+            this.db = db;
+            this.req = new Queue<SQL>();
+        }
+
+        public void Start(){
+            if(!isRunning) {
+                self = new Thread(new ThreadStart(this.Run));
+                self.Name = "DBServer";
+                self.Start();
+            }
+        }
+
+        public void Stop(){
+            keepRunning = false;
+        }
+
+        public void Run(){
+            isRunning = true;
+            SQL s;
+            while(keepRunning) {
+                if(mut.WaitOne(1000)) {
+                    if (req.Count > 0) {
+                        s = req.Dequeue();
+                        mut.ReleaseMutex();
+                        OleDbCommand command = new OleDbCommand(s.Stm, db);
+                        // process s 
+                        if (s.Type == 1 ){
+                            Console.WriteLine("Processing Query ({0}): {1}",s.Type, s.Stm);
+                            s.R = command.ExecuteReader();
+                        } else if (s.Type == 2) {
+                            Console.WriteLine("Processing Execute ({0}): {1}",s.Type, s.Stm);
+                            s.R = command.ExecuteNonQuery();
+                        } else {
+                            s.Type=0;
+                        }
+                        s.done = true;
+                    } else {mut.ReleaseMutex();}    
+                }
+            }
+        }   
+
+        public OleDbDataReader Query(string stm, int timeout){
+            SQL q = new SQL(1,stm);
+            mut.WaitOne();
+            req.Enqueue(q);
+            mut.ReleaseMutex();
+            while(!q.done){ Thread.Sleep(50); } // wait for result
+            Console.WriteLine("Result statment ({0}): {1}",q.Type, q.Stm);
+            if(q.Type == 1) {
+                return (OleDbDataReader) q.R;
+            }
+            return null;
+        }
+
+        public int Execute(string stm, int timeout){
+            SQL e = new SQL(2,stm);
+            mut.WaitOne();
+            req.Enqueue(e);
+            mut.ReleaseMutex();
+            while(!e.done){ Thread.Sleep(50); } // wait for result
+            Console.WriteLine("Result statment ({0}): {1}",e.Type, e.Stm);
+            if(e.Type == 2) {
+                return (int) e.R;
+            }
+            return -1;
+        }
+
+
+        public static void Test() {
+            // Connect
+            string provider = DB.GetProvider("ACE");
+            if(provider==null) {
+                Console.WriteLine("Error: No ACE Provider"); 
+                return;
+            }
+            
+            OleDbConnection db = DB.Connect(provider,@".\priv\db\example.accdb");
+            db.Open();
+
+            DBServer srv = new DBServer(db);
+            srv.Start();
+            //srv.Execute("Dies ist ein Test",10);
+            OleDbDataReader r = srv.Query("SELECT Title, Author, Date FROM Pages;",10);
+            System.IO.StreamWriter file = new System.IO.StreamWriter(Console.OpenStandardOutput());
+            CSV.Write(r,file,";",null,-1);
+            r.Close();
+            file.Close();
+            srv.Stop();
+        }
+    }
+
+    class SQL {
+        public SQL(int t, string stm){Type=t;Stm=stm;}
+        public bool done = false;
+        public int Type;
+        public string Stm;
+        public object R;
     }
 }

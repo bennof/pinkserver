@@ -25,6 +25,7 @@ class test{
         //Pink.Server.Test();
         //Pink.StaticFileHandler.Test(".\\priv\\static\\");
         //Pink.Templates.Test();
-        Pink.Token.Test();
+        //Pink.Token.Test();
+        Pink.DBServer.Test();
     }
 }
