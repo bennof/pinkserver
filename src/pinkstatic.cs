@@ -38,42 +38,51 @@ namespace Pink {
 
         public override void handle(Request req) {
             FileStream fs;
-            string uri;
+            string uri = "";
             byte[] buffer = new byte[BUFFER_SIZE] ;
-
-            uri = (prefix != "") ? req.URL.Substring(prefix.Length): req.URL;
-
+            
+            
             try {
                 // get file
                 if(isFile){
                     fs = new FileStream(rootPath, FileMode.Open);
-                } else if(File.Exists(rootPath+uri)){
-                    fs = new FileStream(rootPath+uri, FileMode.Open);
+                    uri= rootPath;
                 } else {
-                    Console.WriteLine("Error: {0}",rootPath+uri);
-                    req.StatusCode  = 400;
-                    req.StatusDescription = "File "+uri+" not found.";
-                    req.ContentType = MIME.TXT;
-                    req.WriteString("400 File "+uri+" not found.");
-                    return;    
+                    uri = (prefix != "") ? req.URL.Substring(prefix.Length): req.URI;
+                    uri = WebUtility.UrlDecode(uri);
+                    uri = uri.Replace('/','\\');
+                    Console.WriteLine("PATH: {0}",rootPath+uri);
+                    if(File.Exists(rootPath+uri)){
+                        fs = new FileStream(rootPath+uri, FileMode.Open);
+                    } else {
+                        Console.WriteLine("Error: {0}",rootPath+uri);
+                        req.StatusCode  = 400;
+                        req.StatusDescription = "File "+uri+" not found.";
+                        req.ContentType = MIME.TXT;
+                        req.WriteString("400 File "+uri+" not found.");
+                        return;    
+                    }
                 }
-
                 // write header
                 //req.AcceptRange = true;
                 req.ContentType = MIME.GetTypeFromFilen(uri);
                 req.SendChunked = true;
                 req.StatusCode  = 200;
-                //req.StatusDescription = ;
+                req.StatusDescription = "OK";
                 int len = (int)fs.Length;
-                int start = 0;//req.Range()
-
+                req.ContentLength=len;
+                int start = req.Range();
+                fs.Seek(start, SeekOrigin.Begin);
                 // write data
-                for(int i=start; i<len; i+= BUFFER_SIZE) {
-                    fs.Read(buffer, i, BUFFER_SIZE);
-                    req.Write(buffer);
+                int i;
+                while(len > 0){
+                    i = fs.Read(buffer, 0, BUFFER_SIZE);
+                    req.Write(buffer,i);
+                    len -= i;
                 }
                 fs.Close();
-            } catch {
+            } catch (Exception e) {
+                Console.WriteLine(e);
                 req.StatusCode  = 400;
                 req.StatusDescription = "File "+uri+" not found.";
             } 
@@ -81,7 +90,7 @@ namespace Pink {
         }
 
         public static void Test(string path){
-            Handlers routes = new Handlers();
+            Router routes = new Router();
             routes.Add("http://localhost:8080/", new StaticFileHandler(path));
             Server s = new Server("http://localhost:8080/",routes);
             s.Start();

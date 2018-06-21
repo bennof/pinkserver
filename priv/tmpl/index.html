@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Blog Index</title>
+<link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body>
+<img src="/img/pinkserver.png" style="text-align: center;">
+<h1>Pink Server Blog</h1>
+<i>{{ @DateTime.Now }}</i>
+<p>This the front page of the Pink Blog.</p>
+<table>
+{{ System.Data.OleDb.OleDbDataReader reader = Blog.DB.Query("SELECT ID, Title, Author, Date FROM Pages;",10);}}
+<tr>
+    {{ for (int i=0; i<reader.FieldCount; i++) { }} 
+        <th> {{ @reader.GetName(i) }} </th>
+    {{ } }}
+</tr>
+{{ while (reader.Read()) { }}
+<tr>
+    {{ for (int i=0; i<reader.FieldCount; i++) { }}
+        <td> {{ @reader[i] }} </td>
+    {{ } }}
+</tr>
+{{ } reader.Close(); }}
+</table>
+<p>{{ @req.Method}}</p>
+<p>{{ @req.URL}}</p>
+</body>
+</html>

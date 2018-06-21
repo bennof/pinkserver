@@ -26,8 +26,6 @@ namespace Pink {
                 Console.WriteLine("{0}: {1}",entry.Key, entry.Value);
             }
 
-            
-
             Console.WriteLine("PinkToken: {0}",t);
             foreach(KeyValuePair<string, object> entry in t){ 
                 Console.WriteLine("{0}: {1}",entry.Key, entry.Value);

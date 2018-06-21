@@ -7,33 +7,53 @@ using System;
 
 
 
-class Test{
+public class Blog{
+    Pink.Router routes;
+    public static Pink.DBServer DB;
+    //string URL = "http://localhost:8080";
+    
+    public Blog(){
+        // create new router
+        routes = new Pink.Router();
+
+        // create templates
+        Pink.Templates tmpl = new Pink.Templates();
+
+        // DB connection
+        string provider = Pink.DB.GetProvider("ACE");
+        if(provider==null) { Console.WriteLine("Error: No ACE Provider"); return;}    
+        DB = new Pink.DBServer(Pink.DB.Connect(provider,@".\priv\db\example.accdb"));
+        DB.Start();
+
+        // setup static handler
+        Pink.StaticFileHandler staticHandler = new Pink.StaticFileHandler(@".\priv\static");
+        routes.Add("http://localhost:8080/img/", staticHandler);
+        routes.Add("http://localhost:8080/css/", staticHandler);
+        routes.Add("http://localhost:8080/favicon.ico", staticHandler);
+        routes.Add("http://localhost:8080/article/", tmpl.fromFile("ARTICLE",@".\priv\tmpl\article.html"));
+        routes.Add("http://localhost:8080/editor/", tmpl.fromFile("EDITOR",@".\priv\tmpl\editor.html"));
+        routes.Add("http://localhost:8080/", tmpl.fromFile("INDEX",@".\priv\tmpl\index.html"));
+    }
+
+    Pink.Router GetRouter() {
+        return routes;
+    }
+
+
     static void Main(string[] args) {
-        // Bulding a Server
-        // Prepare Templates and Handlers
-        Pink.Handler Index = new Pink.DefaultHandler();
-        //Pink.Handler Article;
-        //Pink.Handler Editor;
-
-
-
-        // Setting Routes
-        Pink.Handlers routes = new Pink.Handlers();
-        //routes.Add("http://localhost:8080/editor/", Editor);
-        //routes.Add("http://localhost:8080/article/", Article);
-        routes.Add("http://localhost:8080/", Index);
-
-        /* Pink.Templates t = new Pink.Templates();
-        Pink.Template tmpl = t.fromFile("Tryout", @"test\templ.html");*/
-
+        // Bulding a Blog Server
+        Blog b = new Blog();
+       
         // Start Pinkserver with routes on given address
-        Pink.Server s = new Pink.Server("http://localhost:8080/",routes);
+        Pink.Server s = new Pink.Server("http://localhost:8080/",b.GetRouter());
         s.Start();
         
         // keep running till key pressed
         Console.WriteLine("A simple webserver. Press a key to quit.");
         Console.ReadKey();
+        Console.WriteLine("Bye.");
         s.Stop();
+        DB.Stop();
 
         //old Tests
         //Pink.Server.Test();

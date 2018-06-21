@@ -13,28 +13,68 @@ using System.Text;
 
 
 namespace Pink {
-    public class Handlers : Dictionary<string,Handler>{}
+    public class Router : Handler {
+        Dictionary<string,Handler> routes = new Dictionary<string,Handler>();
+
+        public void Add(string url, Handler h) {
+            Uri uri = new Uri(url);
+            Console.WriteLine("... path: " + uri.AbsolutePath);
+            routes.Add(uri.AbsolutePath,h);
+        }
+
+        public override void handle(Request req){
+            //get handler
+            Handler h = null;
+            string path = req.URL;
+            foreach (var pair in routes)
+            {
+                if(Match(pair.Key,path)){
+                    h = pair.Value;
+                    break;
+                }
+            }
+
+            if(h==null){
+                req.StatusCode = 400;
+                byte[] buf = Encoding.UTF8.GetBytes("Bad Request.");
+                req.ContentLength = buf.Length;
+                req.Write(buf,buf.Length);
+            }
+
+            //create context
+            //Request req = new Request(ctx);
+            h.handle(req);
+        }
+
+        public static bool Match(string pattern, string value) {
+            int pl, vl;
+            pl = pattern.Length;
+            vl = value.Length;
+            if (pl == vl ) {
+                return (pattern == value);
+            }
+            else if ( pl < vl && pattern[pl-1]=='/'){
+                for(int i=0; i<pl; i++){
+                    if(pattern[i]!=value[i])
+                        return false;
+                }
+                return true;
+            }
+            return false;
+        }
+    }
 
     public class Server{
         private HttpListener listener;
-        private Handlers router;
+        private Handler router;
 
-        public Server(string url, Handlers routes){
+        public Server(string url, Handler routes){
             if (!HttpListener.IsSupported)
                 throw new NotSupportedException("Needs Windows XP SP2, Server 2003 or later.");
 
             listener = new HttpListener();
-
             listener.Prefixes.Add(url);
-
-            router = new Handlers();
-            foreach (var pair in routes)
-            {
-                Console.WriteLine("new route: " + pair.Key);
-                Uri uri = new Uri(pair.Key);
-                Console.WriteLine("... path: " + uri.AbsolutePath);
-                router.Add(uri.AbsolutePath,pair.Value);
-            }
+            router = routes;
         }
 
         public void Init(){}
@@ -69,52 +109,17 @@ namespace Pink {
         }
 
         private void handle(HttpListenerContext ctx){
-            //get handler
-            Handler h = null;
-            string path = ctx.Request.Url.AbsolutePath;
-            foreach (var pair in router)
-            {
-                if(match(pair.Key,path)){
-                    h = pair.Value;
-                    break;
-                }
-            }
-
-            if(h==null){
-                ctx.Response.StatusCode = 400;
-                byte[] buf = Encoding.UTF8.GetBytes("Bad Request.");
-                ctx.Response.ContentLength64 = buf.Length;
-                ctx.Response.OutputStream.Write(buf, 0, buf.Length);
-            }
-
             //create context
             Request req = new Request(ctx);
-            h.handle(req);
+            router.handle(req);
 
             // finalize
             req.finalize();
         }
 
-        private static bool match(string pattern, string value) {
-            int pl, vl;
-            pl = pattern.Length;
-            vl = value.Length;
-            if (pl == vl ) {
-                return (pattern == value);
-            }
-            else if ( pl < vl && pattern[pl-1]=='/'){
-                for(int i=0; i<pl; i++){
-                    if(pattern[i]!=value[i])
-                        return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
         //test server
         public static void Test() {
-            Handlers routes = new Handlers();
+            Router routes = new Router();
             routes.Add("http://localhost:8080/", new DefaultHandler());
             Server s = new Server("http://localhost:8080/",routes);
             s.Start();
@@ -131,6 +136,7 @@ namespace Pink {
 
         public string              Method            {get => req.HttpMethod;}
         public string              URL               {get => req.Url.AbsolutePath;}
+        public string              URI               {get => req.Url.LocalPath;}
         public CookieCollection    Cookies           {get => req.Cookies;}
         public Stream              Input             {get => req.InputStream ;}
         public NameValueCollection Query             {get => req.QueryString;}
@@ -153,12 +159,17 @@ namespace Pink {
             w.Write(buf, 0, buf.Length);
         }
 
+        public void Write(byte[] buf, int len) {
+            w.Write(buf, 0, len);
+        }
+
         public void WriteString(string s) {
             byte[] buf = Encoding.UTF8.GetBytes(s);
             Write(buf);
         }
 
         public void finalize(){
+            w.Flush();
             res.ContentLength64 = w.Length;
             w.WriteTo(res.OutputStream);
         }

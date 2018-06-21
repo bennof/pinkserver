@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Blog Editor - </title>
+<link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body>
+<h1>Editor</h1>
+<i>{{ @DateTime.Now }}</i>
+<p>Write yout article here.</p>
+
+<form action="/action_page.php" id="article">
+    Title: <input type="text" name="title">
+    Author: <input type="text" name="author">
+    <input type="submit">
+</form>
+<br>
+<textarea rows="4" cols="50" name="comment" form="article"></textarea>
+
+<p>{{ @req.Method}}</p>
+<p>{{ @req.URL}}</p>
+<p>This is a static page.</p>
+</body>
+</html>

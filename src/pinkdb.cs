@@ -169,7 +169,9 @@ namespace Pink {
 
         public static OleDbConnection Connect(string provider, string file) 
         {
-            return new OleDbConnection("Provider="+provider+";Data Source=" + file + "; Jet OLEDB:Database Password="+ GetEncoding(file) +";");
+            OleDbConnection c = new OleDbConnection("Provider="+provider+";Data Source=" + file + "; Jet OLEDB:Database Password="+ GetEncoding(file) +";");
+            c.Open();
+            return c;
         }
     }
 

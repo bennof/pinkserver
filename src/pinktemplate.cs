@@ -150,7 +150,7 @@ namespace Pink {
             Pink.Templates t = new Pink.Templates();
             Pink.Template tmpl = t.fromString("Tryout",code);
 
-            Handlers routes = new Handlers();
+            Router routes = new Router();
             routes.Add("http://localhost:8080/", tmpl);
             Server s = new Server("http://localhost:8080/",routes);
             s.Start();
