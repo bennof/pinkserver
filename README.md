@@ -1,4 +1,4 @@
-![Image of Yaktocat](https://bennof.github.com/pinkserver/priv/static/pinkserver.png)
+![Image of PinkServer](https://raw.githubusercontent.com/bennof/pinkserver/master/priv/static/img/pinkserver.png)
 
 # pinkserver
 A small c# webserver named after Pinksteren (Dutch: Pentecost) the time of the core development.
