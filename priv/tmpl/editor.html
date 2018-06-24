@@ -2,24 +2,44 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Blog Editor - </title>
 <link rel="stylesheet" type="text/css" href="/css/style.css">
+{{ 
+    System.Data.OleDb.OleDbDataReader reader = Blog.DB.Query("SELECT ID, Title, Body, Author, Date FROM Pages WHERE ID="+ req.GetPath()[2] +";",10);
+    if(reader.Read()){
+}} 
+    <title>Editor - {{ @reader[1] }} </title>
 </head>
 <body>
-<h1>Editor</h1>
-<i>{{ @DateTime.Now }}</i>
-<p>Write yout article here.</p>
-
-<form action="/action_page.php" id="article">
-    Title: <input type="text" name="title">
-    Author: <input type="text" name="author">
-    <input type="submit">
-</form>
-<br>
-<textarea rows="4" cols="50" name="comment" form="article"></textarea>
-
-<p>{{ @req.Method}}</p>
-<p>{{ @req.URL}}</p>
-<p>This is a static page.</p>
+    <h1>Editor</h1>
+    <i>{{ @reader[4] }}</i>
+    <p>Write yout article here.</p>
+    <form action="/upload" method="post" id="article">
+        <input type="hidden" name="ID" value="{{@reader[0]}}">
+        Title: <input type="text" name="title" value="{{@reader[1]}}">
+        Author: <input type="text" name="author" value={{@reader[3]}}>
+        <input type="submit">
+    </form>
+    <br>
+    <textarea rows="4" cols="50" name="body" form="article">{{ @reader[2] }}</textarea>
+{{
+    reader.Close();
+    } else { // ERROR PATH
+}}
+</head>
+<body>
+    <h1>Editor</h1>
+    <i>{{ @DateTime.Now }}</i>
+    <p>Write yout article here.</p>
+    <form action="/save" id="article">
+        <input type="hidden" name="ID" value="-1">
+        Title: <input type="text" name="title">
+        Author: <input type="text" name="author">
+        <input type="submit">
+    </form>
+    <br>
+    <textarea rows="4" cols="50" name="comment" form="article"></textarea>
+{{
+    } // END ELSE
+}}
 </body>
 </html>

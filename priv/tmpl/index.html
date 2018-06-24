@@ -16,15 +16,18 @@
     {{ for (int i=0; i<reader.FieldCount; i++) { }} 
         <th> {{ @reader.GetName(i) }} </th>
     {{ } }}
+    <th>link</th>
 </tr>
 {{ while (reader.Read()) { }}
 <tr>
     {{ for (int i=0; i<reader.FieldCount; i++) { }}
         <td> {{ @reader[i] }} </td>
     {{ } }}
+    <td><a href="/article/{{ @reader[0] }}">{{ @reader[1] }}</a></td>
 </tr>
 {{ } reader.Close(); }}
 </table>
+<p><a href="/editor/-1">new article</a></p>
 <p>{{ @req.Method}}</p>
 <p>{{ @req.URL}}</p>
 </body>

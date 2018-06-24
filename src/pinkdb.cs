@@ -224,6 +224,7 @@ namespace Pink {
 
     public class DBServer {
         Thread self;
+        EventWaitHandle  waitHandle = new EventWaitHandle (false,EventResetMode.ManualReset);
         bool isRunning = false;
         bool keepRunning = true;
         OleDbConnection db;
@@ -245,13 +246,15 @@ namespace Pink {
 
         public void Stop(){
             keepRunning = false;
+            waitHandle.Set();
         }
 
         public void Run(){
             isRunning = true;
             SQL s;
             while(keepRunning) {
-                if(mut.WaitOne(1000)) {
+                waitHandle.WaitOne();
+                if(mut.WaitOne()) {
                     if (req.Count > 0) {
                         s = req.Dequeue();
                         mut.ReleaseMutex();
@@ -269,6 +272,9 @@ namespace Pink {
                         s.done = true;
                     } else {mut.ReleaseMutex();}    
                 }
+
+                waitHandle.Reset();
+                if (req.Count > 0) {waitHandle.Set();}
             }
         }   
 
@@ -277,6 +283,7 @@ namespace Pink {
             mut.WaitOne();
             req.Enqueue(q);
             mut.ReleaseMutex();
+            waitHandle.Set();
             while(!q.done){ Thread.Sleep(50); } // wait for result
             Console.WriteLine("Result statment ({0}): {1}",q.Type, q.Stm);
             if(q.Type == 1) {
@@ -290,6 +297,7 @@ namespace Pink {
             mut.WaitOne();
             req.Enqueue(e);
             mut.ReleaseMutex();
+            waitHandle.Set();
             while(!e.done){ Thread.Sleep(50); } // wait for result
             Console.WriteLine("Result statment ({0}): {1}",e.Type, e.Stm);
             if(e.Type == 2) {

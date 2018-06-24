@@ -2,16 +2,32 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Blog -</title>
 <link rel="stylesheet" type="text/css" href="/css/style.css">
+{{ 
+
+    System.Data.OleDb.OleDbDataReader reader = Blog.DB.Query("SELECT ID, Title, Body, Author, Date FROM Pages WHERE ID="+ req.GetPath()[2] +";",10);
+    if(reader.Read()){
+}}
+    <title>Blog - {{ @reader[1] }} </title>
 </head>
 <body>
-<h1>Example</h1>
-<i>{{ @DateTime.Now }}</i>
-<p>This the front page of the Pink Blog.</p>
-
-<p>{{ @req.Method}}</p>
-<p>{{ @req.URL}}</p>
-<p>This is a static page.</p>
+        <h1>{{ @reader[1] }}</h1>
+        <i>{{ @reader[3] }} - {{ @reader[4] }}</i>
+        {{ @reader[2] }} 
+{{
+    reader.Close();
+    } else { // error path
+}}
+    <title>Blog -</title>
+</head>
+<body>
+    <h1>Error</h1>
+    <i>{{ @DateTime.Now }}</i>
+    <p>Page not found: {{ @req.URL}} </p>
+    <p>filen: {{ @req.GetPath()[2] }} </p>
+{{
+    }
+}}
+<p><a href="/">home</a> </p>
 </body>
 </html>

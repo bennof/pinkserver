@@ -16,7 +16,7 @@ namespace Templates {
             req.WriteString(string.Format("{0}", reader.GetName(i)));
             req.WriteString( " </th>\r\n    ");
              } ;
-            req.WriteString( "\r\n</tr>\r\n");
+            req.WriteString( "\r\n    <th>link</th>\r\n</tr>\r\n");
              while (reader.Read()) { ;
             req.WriteString( "\r\n<tr>\r\n    ");
              for (int i=0; i<reader.FieldCount; i++) { ;
@@ -24,9 +24,13 @@ namespace Templates {
             req.WriteString(string.Format("{0}", reader[i]));
             req.WriteString( " </td>\r\n    ");
              } ;
-            req.WriteString( "\r\n</tr>\r\n");
-             } ;
-            req.WriteString( "\r\n</table>\r\n<p>");
+            req.WriteString( "\r\n    <td><a href=\"/article/");
+            req.WriteString(string.Format("{0}", reader[0]));
+            req.WriteString( "\">");
+            req.WriteString(string.Format("{0}", reader[1]));
+            req.WriteString( "</a></td>\r\n</tr>\r\n");
+             } reader.Close(); ;
+            req.WriteString( "\r\n</table>\r\n<p><a href=\"/editor/-1\">new article</a></p>\r\n<p>");
             req.WriteString(string.Format("{0}", req.Method));
             req.WriteString( "</p>\r\n<p>");
             req.WriteString(string.Format("{0}", req.URL));

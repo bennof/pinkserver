@@ -24,7 +24,7 @@ namespace Pink {
         // use file input foe a file
         public Template fromFile(string name, string filen){
             try {
-                return fromString(name,File.ReadAllText(filen));
+                return fromString(name,MIME.GetTypeFromFilen(filen),File.ReadAllText(filen));
             } catch(Exception e)    {
                 Console.WriteLine("ERROR: {0}.", e.ToString());
             }
@@ -32,7 +32,7 @@ namespace Pink {
         }
 
         // use a string as input 
-        public Template fromString(string name, string src) {
+        public Template fromString(string name, string mimetype, string src) {
             try {
                 string[] toks = src.Split(start, StringSplitOptions.None);
                 StringBuilder sb = new StringBuilder();
@@ -58,6 +58,7 @@ namespace Pink {
                 File.WriteAllText("debug.cs", sb.ToString());
                 Assembly asm = compile(sb.ToString());
                 Template tmpl = (Template)load(asm,"Templates."+name);
+                tmpl.mimetype = mimetype;
                 //obj.GetType().InvokeMember("test",BindingFlags.InvokeMethod,null,obj,null); 
                 Add(name,tmpl);
                 return tmpl;
@@ -75,9 +76,6 @@ namespace Pink {
                 public class Template1: Pink.Template {
                     public override void Render(Pink.Request req, object o){
                         req.writeString(""<HTML><HEAD><TITLE>Testing PinkServer ... </TITLE><HEAD><BODY><H1>A Simple Template</H1><P>A simple test for the Template</P></BODY></HTML>"");
-                    }
-                    public void test(){
-                        Console.WriteLine(""Test app"");
                     }
                 }
             }
@@ -148,7 +146,7 @@ namespace Pink {
             </html>
             ";
             Pink.Templates t = new Pink.Templates();
-            Pink.Template tmpl = t.fromString("Tryout",code);
+            Pink.Template tmpl = t.fromString("Tryout",MIME.HTML,code);
 
             Router routes = new Router();
             routes.Add("http://localhost:8080/", tmpl);
@@ -162,8 +160,11 @@ namespace Pink {
 
     // template prototype by default a Handler
     public abstract class Template : Handler{
+        public string mimetype;
+
         public abstract void Render(Request req, object o);
         public override void handle(Request req){
+            req.ContentType = mimetype;
             Render(req,null);
         }
     }

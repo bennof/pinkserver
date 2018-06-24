@@ -5,6 +5,8 @@
 
 using System;
 using System.Net;
+using System.Net.WebSockets;
+using System.Web;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Threading;
@@ -39,10 +41,8 @@ namespace Pink {
                 byte[] buf = Encoding.UTF8.GetBytes("Bad Request.");
                 req.ContentLength = buf.Length;
                 req.Write(buf,buf.Length);
+                return;
             }
-
-            //create context
-            //Request req = new Request(ctx);
             h.handle(req);
         }
 
@@ -131,8 +131,10 @@ namespace Pink {
 
     public class Request {
         private MemoryStream w;
+        private HttpListenerContext  context;
         private HttpListenerRequest  req;
         private HttpListenerResponse res;
+        private Dictionary<string,string> postquery;
 
         public string              Method            {get => req.HttpMethod;}
         public string              URL               {get => req.Url.AbsolutePath;}
@@ -151,8 +153,61 @@ namespace Pink {
         
         public Request(HttpListenerContext ctx) {
             w = new MemoryStream();
+            context = ctx;
             req = ctx.Request;
             res = ctx.Response;
+        }
+
+        public void ParseBody() {
+            if(ContentType == "application/x-www-form-urlencoded") {
+                StreamReader stream = new StreamReader(Input);
+                string s_in = stream.ReadToEnd();
+                string data = HttpUtility.UrlDecode(s_in);
+                string[] elem = data.Split('&');
+                if(elem.Length > 0) {
+                    postquery = new Dictionary<string,string>();
+                    foreach (string el in elem) {
+                        string[] kv = el.Split('=');
+                        postquery.Add(kv[0],kv[1]);
+                    }
+                }
+            }
+        }
+
+        public Dictionary<string,string> GetPost() {
+            if (postquery == null) {
+                ParseBody();
+            }
+            return postquery;
+        }
+
+        public string GetPostQuery(string key) {
+            if (postquery == null) {
+                ParseBody();
+            }
+            try {
+                return postquery[key];
+            } catch {
+                return "";
+            }
+        }
+
+        public string[] GetPath() {
+            return req.Url.AbsolutePath.Split('/');
+        }
+
+        public WebSocket AcceptWebsoket(string subProtocol) {
+            if (context.Request.IsWebSocketRequest){
+                WebSocketContext webSocketContext = null;
+                try {
+                    webSocketContext = context.AcceptWebSocketAsync(subProtocol).Result;
+                } catch(Exception e) {
+                    Console.WriteLine("Exception: {0}", e);
+                    return null;
+                }
+                return webSocketContext.WebSocket;
+            }
+            return null;
         }
 
         public void Write(byte[] buf) {
