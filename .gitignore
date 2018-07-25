@@ -1,3 +1,4 @@
+.build.win
 debug.cs
 bin/Test.exe
 dll/pink.dll
