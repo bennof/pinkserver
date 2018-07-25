@@ -68,6 +68,7 @@ public class Blog{
     }
 
     static void Main(string[] args) {
+        
         // Bulding a Blog Server
         Blog b = new Blog();
        
@@ -81,7 +82,7 @@ public class Blog{
         Console.WriteLine("Bye.");
         s.Stop();
         DB.Stop();
-
+        
         //old Tests
         //Pink.Server.Test();
         //Pink.StaticFileHandler.Test(".\\priv\\static\\");
