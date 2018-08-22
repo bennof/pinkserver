@@ -3,6 +3,11 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// public static string Pink.MIME.<Type>
+// public static string Pink.MIME.GetTypeFromExt(string ext)
+// public static string Pink.MIME.GetTypeFromFilen(string filen)
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;

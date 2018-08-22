@@ -219,6 +219,28 @@ namespace Pink {
                 file.Write("\r\n");
             }
         }
+
+        public static void Read(RowProcessor proc,System.IO.StreamReader file, string sep, bool hasHeader)
+        {
+            string[] header = null; 
+            string[] read = null;
+            string data;
+
+            if(hasHeader) {
+                if ((data = file.ReadLine()) != null ){
+                    header = data.Split(sep);
+                }
+            }
+
+            while ((data = file.ReadLine()) != null) {
+                read = data.Split(sep);
+                proc.ProcessRow(header, read);
+            }
+        }
+
+        public interface RowProcessor {
+            int ProcessRow(string[] header, string[] elements);
+        }
     }
 
 
