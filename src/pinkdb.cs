@@ -175,6 +175,51 @@ namespace Pink {
         }
     }
 
+    public class JSON {
+        public static void Write(OleDbDataReader reader, System.IO.StreamWriter file, string[] header, long ean)
+        {
+            if(header == null){
+                header = new string[reader.FieldCount];
+                for (int i=0; i<reader.FieldCount; i++) {
+                    header[i] = reader.GetName(i);
+                }
+            }
+
+            file.Write("[\r\n");
+            while (reader.Read())  
+            {    
+                for (int i=0; i<reader.FieldCount; i++) 
+                {
+                    if (i != 0) {
+                        file.Write(",\"");
+                        file.Write(header[i]);
+                        file.Write("\": \"");
+                        file.Write(reader[i]);
+                        file.Write("\"");
+                    } else {
+                        file.Write("{\"");
+                        file.Write(header[i]);
+
+                        if (ean > 0){
+                            file.Write("\": ");
+                            int h = (int) reader[i];
+                            long hh = EAN13.Create(h,ean);// 2700000000000
+                            file.Write(hh);
+                        } else {
+                            file.Write("\": \"");
+                            file.Write(reader[i]);
+                            file.Write("\"");
+                        };
+                    }
+                }
+                file.Write("},\r\n");
+            }
+            file.Write("{}]\r\n");
+            file.Flush();
+        }
+        
+    }
+
     public class CSV {
         public static void Write(OleDbDataReader reader, System.IO.StreamWriter file, string sep,string[] header,  long ean)
         {
@@ -218,6 +263,7 @@ namespace Pink {
                 }
                 file.Write("\r\n");
             }
+            file.Flush();
         }
 
         public static void Read(RowProcessor proc,System.IO.StreamReader file, string sep, bool hasHeader)
@@ -228,12 +274,12 @@ namespace Pink {
 
             if(hasHeader) {
                 if ((data = file.ReadLine()) != null ){
-                    header = data.Split(sep);
+                    header = data.Split(sep[0]);
                 }
             }
 
             while ((data = file.ReadLine()) != null) {
-                read = data.Split(sep);
+                read = data.Split(sep[0]);
                 proc.ProcessRow(header, read);
             }
         }

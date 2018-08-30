@@ -144,6 +144,7 @@ namespace Pink {
         public string              URI               {get => req.Url.LocalPath;}
         public CookieCollection    Cookies           {get => req.Cookies;}
         public Stream              Input             {get => req.InputStream ;}
+        public StreamWriter        Output            {get => new StreamWriter(w) ;}
         public NameValueCollection Query             {get => req.QueryString;}
         public string              ContentType       {get => req.ContentType;       set => res.ContentType=value;}
         public long                ContentLength     {get => req.ContentLength64;   set => res.ContentLength64=value;} 
@@ -225,6 +226,7 @@ namespace Pink {
             byte[] buf = Encoding.UTF8.GetBytes(s);
             Write(buf);
         }
+        
 
         public void finalize(){
             w.Flush();
